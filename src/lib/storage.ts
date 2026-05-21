@@ -24,12 +24,23 @@ function currentTime(): string {
   });
 }
 
+function isValidSession(s: unknown): s is Session {
+  return (
+    typeof s === "object" &&
+    s !== null &&
+    typeof (s as Session).slot === "number" &&
+    typeof (s as Session).steps === "number" &&
+    typeof (s as Session).time === "string"
+  );
+}
+
 function isValidData(data: unknown): data is TrainingData {
   return (
     typeof data === "object" &&
     data !== null &&
     typeof (data as TrainingData).date === "string" &&
-    Array.isArray((data as TrainingData).sessions)
+    Array.isArray((data as TrainingData).sessions) &&
+    (data as TrainingData).sessions.every(isValidSession)
   );
 }
 
@@ -50,7 +61,11 @@ function load(): TrainingData {
 }
 
 function save(data: TrainingData): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // 容量超過・ストレージ無効（Safari プライベートモード等）は無視
+  }
 }
 
 /** 今日のトレーニングデータを取得する */
