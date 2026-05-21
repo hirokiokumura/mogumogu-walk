@@ -33,10 +33,10 @@ export function useMetronome() {
     setIsOn(false);
   }, []);
 
-  const toggle = useCallback(() => {
-    if (isOn) {
-      stop();
-      return;
+  const start = useCallback(() => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
 
     // iOS Safari: AudioContext はユーザー操作後に生成する
@@ -52,7 +52,15 @@ export function useMetronome() {
     playClick(ctx);
     intervalRef.current = setInterval(() => playClick(ctx), intervalMs);
     setIsOn(true);
-  }, [isOn, stop]);
+  }, []);
+
+  const toggle = useCallback(() => {
+    if (isOn) {
+      stop();
+    } else {
+      start();
+    }
+  }, [isOn, stop, start]);
 
   // アンマウント時にクリーンアップ
   useEffect(() => {
@@ -64,5 +72,5 @@ export function useMetronome() {
     };
   }, []);
 
-  return { isOn, toggle, stop };
+  return { isOn, start, toggle, stop };
 }
