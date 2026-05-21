@@ -10,11 +10,16 @@ const MIN_INTERVAL_MS = 250;
 async function requestMotionPermission(): Promise<boolean> {
   if (
     typeof DeviceMotionEvent !== "undefined" &&
-    typeof (DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> })
-      .requestPermission === "function"
+    typeof (
+      DeviceMotionEvent as unknown as {
+        requestPermission?: () => Promise<string>;
+      }
+    ).requestPermission === "function"
   ) {
     const result = await (
-      DeviceMotionEvent as unknown as { requestPermission: () => Promise<string> }
+      DeviceMotionEvent as unknown as {
+        requestPermission: () => Promise<string>;
+      }
     ).requestPermission();
     return result === "granted";
   }
