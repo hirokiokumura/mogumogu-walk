@@ -20,7 +20,10 @@ closes #
 
 ## チェックリスト
 
+<!-- コード変更がある場合のみ確認 -->
 - [ ] `npm run build` が成功する
 - [ ] `npm run lint` がエラーなし
+
+<!-- 該当する場合のみ確認 -->
 - [ ] localStorage スキーマ変更がある場合、CLAUDE.md に反映した
 - [ ] サーバーサイド処理・API Routes を追加していない
