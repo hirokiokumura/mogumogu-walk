@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SessionList } from "@/components/SessionList";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useStepCounter } from "@/hooks/useStepCounter";
-import { addSession, loadTrainingData } from "@/lib/storage";
+import {
+  addSession,
+  deleteSession,
+  loadTrainingData,
+  type Session,
+} from "@/lib/storage";
 
 const MAX_SESSIONS = 6;
 
@@ -14,16 +20,23 @@ export function StepCounter() {
     toggle: toggleMetronome,
     stop: stopMetronome,
   } = useMetronome();
+  const [sessions, setSessions] = useState<Session[] | null>(null);
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sessionCount, setSessionCount] = useState<number | null>(null);
 
   useEffect(() => {
-    setSessionCount(loadTrainingData().sessions.length);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSessions(loadTrainingData().sessions);
   }, []);
 
-  const isLoaded = sessionCount !== null;
-  const isFull = isLoaded && sessionCount >= MAX_SESSIONS;
+  const isLoaded = sessions !== null;
+  const isFull = isLoaded && sessions.length >= MAX_SESSIONS;
+
+  const handleStart = () => {
+    setSavedSteps(null);
+    setError(null);
+    start();
+  };
 
   const handleStop = () => {
     stop();
@@ -31,17 +44,21 @@ export function StepCounter() {
     const result = addSession(steps);
     if (result) {
       setSavedSteps(steps);
-      setSessionCount(result.sessions.length);
+      setSessions(result.sessions);
       setError(null);
     } else {
       setError("保存できませんでした");
     }
   };
 
-  const handleStart = () => {
-    setSavedSteps(null);
-    setError(null);
-    start();
+  const handleDelete = (slot: number) => {
+    const result = deleteSession(slot);
+    if (result) {
+      setSessions(result.sessions);
+      setSavedSteps(null);
+    } else {
+      setError("削除できませんでした");
+    }
   };
 
   return (
@@ -115,6 +132,12 @@ export function StepCounter() {
       )}
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
+
+      {isLoaded && (
+        <div className="w-full mt-2">
+          <SessionList sessions={sessions} onDelete={handleDelete} />
+        </div>
+      )}
     </div>
   );
 }
