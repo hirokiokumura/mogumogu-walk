@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useMetronome } from "@/hooks/useMetronome";
 import { useStepCounter } from "@/hooks/useStepCounter";
 import { addSession, loadTrainingData } from "@/lib/storage";
 
@@ -8,6 +9,11 @@ const MAX_SESSIONS = 6;
 
 export function StepCounter() {
   const { state, steps, start, stop } = useStepCounter();
+  const {
+    isOn: metronomeOn,
+    toggle: toggleMetronome,
+    stop: stopMetronome,
+  } = useMetronome();
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sessionCount, setSessionCount] = useState<number | null>(null);
@@ -21,6 +27,7 @@ export function StepCounter() {
 
   const handleStop = () => {
     stop();
+    stopMetronome();
     const result = addSession(steps);
     if (result) {
       setSavedSteps(steps);
@@ -64,13 +71,24 @@ export function StepCounter() {
       )}
 
       {state === "counting" && (
-        <button
-          type="button"
-          onClick={handleStop}
-          className="w-full py-4 rounded-3xl bg-red-400 text-white text-xl font-bold shadow-md active:scale-95 transition-transform"
-        >
-          ⏹ とめる
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={handleStop}
+            className="w-full py-4 rounded-3xl bg-red-400 text-white text-xl font-bold shadow-md active:scale-95 transition-transform"
+          >
+            ⏹ とめる
+          </button>
+          <button
+            type="button"
+            onClick={toggleMetronome}
+            className={`w-full py-3 rounded-3xl text-white text-lg font-bold shadow-md active:scale-95 transition-transform ${
+              metronomeOn ? "bg-orange-400" : "bg-blue-300"
+            }`}
+          >
+            {metronomeOn ? "🔔 メトロノーム ON" : "🔕 メトロノーム OFF"}
+          </button>
+        </>
       )}
 
       {state === "denied" && (
