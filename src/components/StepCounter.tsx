@@ -24,8 +24,8 @@ export function StepCounter() {
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSessions(loadTrainingData().sessions);
   }, []);
 

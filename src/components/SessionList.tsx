@@ -33,7 +33,9 @@ export function SessionList({ sessions, onDelete }: Props) {
                 <p className="text-xs text-gray-400">{s.time}</p>
                 <p className="text-lg font-bold text-purple-600 tabular-nums">
                   {s.steps}
-                  <span className="text-xs font-normal text-gray-400 ml-1">歩</span>
+                  <span className="text-xs font-normal text-gray-400 ml-1">
+                    歩
+                  </span>
                 </p>
               </div>
             </div>
