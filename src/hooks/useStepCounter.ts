@@ -46,7 +46,7 @@ export function useStepCounter() {
     const delta = Math.abs(magnitude - lastMagnitudeRef.current);
     lastMagnitudeRef.current = magnitude;
 
-    const now = Date.now();
+    const now = performance.now();
     if (delta > THRESHOLD && !aboveThresholdRef.current) {
       aboveThresholdRef.current = true;
       if (now - lastStepTimeRef.current > MIN_INTERVAL_MS) {

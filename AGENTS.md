@@ -57,3 +57,24 @@ public/
 ## 詳細仕様
 
 詳細は [requirements.md](./requirements.md) を参照。
+
+## AI スキル（modern-web-guidance）
+
+HTML・CSS・クライアントサイド JS を実装する際は `modern-web-guidance` スキルを参照すること。
+
+### 対象となる実装例
+
+- モーダル・ダイアログ → `<dialog>` 要素を優先
+- 確認ダイアログ（#5 リセット） → `<dialog>` + `showModal()`
+- CSS レイアウト → コンテナクエリ、`@layer`、`:has()` を検討
+- スクロール演出 → Scroll-driven Animations、View Transitions
+
+### セットアップ
+
+`.agents/` は gitignore されており、クローン後に以下で再生成する：
+
+```bash
+npx modern-web-guidance@latest install
+```
+
+バージョンは `skills-lock.json` で固定されている。

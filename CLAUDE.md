@@ -21,7 +21,16 @@
 npm run dev      # 開発サーバー起動
 npm run build    # 静的エクスポート（out/ ディレクトリに出力）
 npm run lint     # Lint チェック
+
+# 初回セットアップ（AI スキルのインストール）
+npx modern-web-guidance@latest install  # .agents/ を生成（gitignore 済み）
 ```
+
+## AI スキル
+
+`.agents/skills/modern-web-guidance` はモダン Web API の実装ガイドを提供する。
+`.agents/` は gitignore されているため、クローン後に上記コマンドで再生成する。
+`skills-lock.json` でバージョンが固定されている。
 
 ## 開発フロー
 
