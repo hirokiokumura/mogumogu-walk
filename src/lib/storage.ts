@@ -11,6 +11,26 @@ export type TrainingData = {
 
 const STORAGE_KEY = "mogumogu-walk-training";
 const MAX_SESSIONS = 6;
+const CHANGE_EVENT = "mogumogu-storage-change";
+
+function notify(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+  }
+}
+
+export function subscribeToSessions(callback: () => void): () => void {
+  window.addEventListener(CHANGE_EVENT, callback);
+  return () => window.removeEventListener(CHANGE_EVENT, callback);
+}
+
+export function getSessionsSnapshot(): Session[] {
+  return load().sessions;
+}
+
+export function getSessionsServerSnapshot(): Session[] {
+  return [];
+}
 
 function today(): string {
   return new Date().toLocaleDateString("sv-SE"); // "YYYY-MM-DD"
@@ -97,6 +117,7 @@ export function addSession(steps: number): TrainingData | null {
     sessions: [...data.sessions, newSession],
   };
   if (!save(updated)) return null;
+  notify();
   return updated;
 }
 
@@ -110,6 +131,7 @@ export function deleteSession(slot: number): TrainingData | null {
   const renumbered = filtered.map((s, i) => ({ ...s, slot: i + 1 }));
   const updated: TrainingData = { ...data, sessions: renumbered };
   if (!save(updated)) return null;
+  notify();
   return updated;
 }
 
@@ -120,5 +142,6 @@ export function deleteSession(slot: number): TrainingData | null {
 export function resetToday(): TrainingData | null {
   const updated: TrainingData = { date: today(), sessions: [] };
   if (!save(updated)) return null;
+  notify();
   return updated;
 }
