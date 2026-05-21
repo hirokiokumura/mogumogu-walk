@@ -37,7 +37,9 @@ export function StepCounter() {
     start();
   };
 
-  const handleMetronomePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+  const handleMetronomePointerDown = (
+    event: PointerEvent<HTMLButtonElement>,
+  ) => {
     event.preventDefault();
     void toggleMetronome();
   };

@@ -17,10 +17,7 @@ function playClick(ctx: AudioContext) {
   oscillator.frequency.setValueAtTime(1200, now);
   gain.gain.setValueAtTime(0.0001, now);
   gain.gain.exponentialRampToValueAtTime(0.35, now + 0.005);
-  gain.gain.exponentialRampToValueAtTime(
-    0.0001,
-    now + CLICK_DURATION,
-  );
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + CLICK_DURATION);
   oscillator.start(now);
   oscillator.stop(now + CLICK_DURATION);
 }
