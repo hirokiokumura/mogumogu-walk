@@ -56,6 +56,7 @@ export function StepCounter() {
     if (result) {
       setSessions(result.sessions);
       setSavedSteps(null);
+      setError(null);
     } else {
       setError("削除できませんでした");
     }
