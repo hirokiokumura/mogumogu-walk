@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useStepCounter } from "@/hooks/useStepCounter";
 import { addSession, loadTrainingData } from "@/lib/storage";
-import { useEffect, useState } from "react";
 
 const MAX_SESSIONS = 6;
 
@@ -44,20 +44,20 @@ export function StepCounter() {
       </div>
       <p className="text-gray-500 text-sm">歩</p>
 
-      {state === "idle" && (
-        !isLoaded ? null : isFull ? (
+      {state === "idle" &&
+        (!isLoaded ? null : isFull ? (
           <p className="text-gray-400 text-sm text-center">
             本日の計測は6回完了しました 🎉
           </p>
         ) : (
           <button
+            type="button"
             onClick={handleStart}
             className="w-full py-4 rounded-3xl bg-green-400 text-white text-xl font-bold shadow-md active:scale-95 transition-transform"
           >
             🐾 はじめる
           </button>
-        )
-      )}
+        ))}
 
       {state === "requesting" && (
         <p className="text-gray-500 text-sm">センサーの許可を確認中...</p>
@@ -65,6 +65,7 @@ export function StepCounter() {
 
       {state === "counting" && (
         <button
+          type="button"
           onClick={handleStop}
           className="w-full py-4 rounded-3xl bg-red-400 text-white text-xl font-bold shadow-md active:scale-95 transition-transform"
         >
@@ -80,6 +81,7 @@ export function StepCounter() {
             設定アプリで「モーションと方向」を許可してください。
           </p>
           <button
+            type="button"
             onClick={stop}
             className="px-6 py-2 rounded-2xl bg-gray-200 text-gray-600 text-sm font-medium active:scale-95 transition-transform"
           >
