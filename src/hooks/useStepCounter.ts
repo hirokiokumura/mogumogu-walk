@@ -51,7 +51,13 @@ export function useStepCounter() {
 
   const start = useCallback(async () => {
     setState("requesting");
-    const granted = await requestMotionPermission();
+    let granted: boolean;
+    try {
+      granted = await requestMotionPermission();
+    } catch {
+      setState("denied");
+      return;
+    }
     if (!granted) {
       setState("denied");
       return;

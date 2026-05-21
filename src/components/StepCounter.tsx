@@ -1,13 +1,18 @@
 "use client";
 
 import { useStepCounter } from "@/hooks/useStepCounter";
-import { addSession } from "@/lib/storage";
+import { addSession, loadTrainingData } from "@/lib/storage";
 import { useState } from "react";
+
+const MAX_SESSIONS = 6;
 
 export function StepCounter() {
   const { state, steps, start, stop } = useStepCounter();
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const sessionCount = loadTrainingData().sessions.length;
+  const isFull = sessionCount >= MAX_SESSIONS;
 
   const handleStop = () => {
     stop();
@@ -34,12 +39,18 @@ export function StepCounter() {
       <p className="text-gray-500 text-sm">歩</p>
 
       {state === "idle" && (
-        <button
-          onClick={handleStart}
-          className="w-full py-4 rounded-3xl bg-green-400 text-white text-xl font-bold shadow-md active:scale-95 transition-transform"
-        >
-          🐾 はじめる
-        </button>
+        isFull ? (
+          <p className="text-gray-400 text-sm text-center">
+            本日の計測は6回完了しました 🎉
+          </p>
+        ) : (
+          <button
+            onClick={handleStart}
+            className="w-full py-4 rounded-3xl bg-green-400 text-white text-xl font-bold shadow-md active:scale-95 transition-transform"
+          >
+            🐾 はじめる
+          </button>
+        )
       )}
 
       {state === "requesting" && (
