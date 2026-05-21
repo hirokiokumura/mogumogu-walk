@@ -50,9 +50,11 @@ function load(): TrainingData {
     if (!raw) return { date: today(), sessions: [] };
     const parsed: unknown = JSON.parse(raw);
     if (!isValidData(parsed)) return { date: today(), sessions: [] };
-    // 日付が変わっていたらリセット
+    // 日付が変わっていたらリセットして localStorage にも書き戻す
     if (parsed.date !== today()) {
-      return { date: today(), sessions: [] };
+      const reset = { date: today(), sessions: [] };
+      save(reset);
+      return reset;
     }
     return parsed;
   } catch {
