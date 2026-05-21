@@ -7,7 +7,9 @@ export const metadata: Metadata = {
   description: "矯正トレーニング用歩数カウンター",
   manifest: "/mogumogu-walk/manifest.json",
   icons: {
-    apple: [{ url: "/mogumogu-walk/icons/apple-touch-icon.png", sizes: "180x180" }],
+    apple: [
+      { url: "/mogumogu-walk/icons/apple-touch-icon.png", sizes: "180x180" },
+    ],
   },
   appleWebApp: {
     capable: true,

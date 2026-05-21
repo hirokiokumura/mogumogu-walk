@@ -20,6 +20,7 @@ function notify(): void {
 }
 
 export function subscribeToSessions(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
   window.addEventListener(CHANGE_EVENT, callback);
   return () => window.removeEventListener(CHANGE_EVENT, callback);
 }

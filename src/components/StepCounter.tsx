@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { SessionList } from "@/components/SessionList";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useStepCounter } from "@/hooks/useStepCounter";
