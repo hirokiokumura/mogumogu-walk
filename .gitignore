@@ -22,6 +22,9 @@
 *.pem
 Thumbs.db
 
+# AI coding tools (install with: npx modern-web-guidance@latest install)
+/.agents/
+
 # editors
 .vscode/
 .idea/
