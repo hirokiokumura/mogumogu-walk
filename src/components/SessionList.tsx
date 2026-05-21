@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Session } from "@/lib/storage";
 
 type Props = {
@@ -8,6 +9,8 @@ type Props = {
 };
 
 export function SessionList({ sessions, onDelete }: Props) {
+  const [confirmSlot, setConfirmSlot] = useState<number | null>(null);
+
   if (sessions.length === 0) {
     return (
       <p className="text-gray-400 text-sm text-center py-4">
@@ -15,6 +18,19 @@ export function SessionList({ sessions, onDelete }: Props) {
       </p>
     );
   }
+
+  const handleDeleteRequest = (slot: number) => {
+    setConfirmSlot(slot);
+  };
+
+  const handleDeleteConfirm = (slot: number) => {
+    setConfirmSlot(null);
+    onDelete(slot);
+  };
+
+  const handleDeleteCancel = () => {
+    setConfirmSlot(null);
+  };
 
   return (
     <div className="w-full flex flex-col gap-2">
@@ -39,14 +55,33 @@ export function SessionList({ sessions, onDelete }: Props) {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => onDelete(s.slot)}
-              className="text-red-300 hover:text-red-400 active:scale-90 transition-transform p-2 rounded-xl"
-              aria-label={`第${s.slot}回を削除`}
-            >
-              🗑️
-            </button>
+            {confirmSlot === s.slot ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteConfirm(s.slot)}
+                  className="px-3 py-1 rounded-xl bg-red-400 text-white text-xs font-bold active:scale-95 transition-transform"
+                >
+                  消す
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteCancel}
+                  className="px-3 py-1 rounded-xl bg-gray-200 text-gray-600 text-xs font-medium active:scale-95 transition-transform"
+                >
+                  やめる
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleDeleteRequest(s.slot)}
+                className="p-2 text-red-300 hover:text-red-400 active:scale-90 transition-transform rounded-xl"
+                aria-label={`第${s.slot}回を削除`}
+              >
+                🗑️
+              </button>
+            )}
           </li>
         ))}
       </ul>
