@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { type PointerEvent, useState, useSyncExternalStore } from "react";
 import { SessionList } from "@/components/SessionList";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useStepCounter } from "@/hooks/useStepCounter";
@@ -35,6 +35,11 @@ export function StepCounter() {
     setSavedSteps(null);
     setError(null);
     start();
+  };
+
+  const handleMetronomePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    void toggleMetronome();
   };
 
   const handleStop = () => {
@@ -82,6 +87,7 @@ export function StepCounter() {
             </button>
             <button
               type="button"
+              onPointerDown={handleMetronomePointerDown}
               onClick={toggleMetronome}
               className={`py-4 rounded-3xl text-white text-lg font-bold shadow-md active:scale-95 transition-transform ${
                 metronomeOn ? "bg-orange-400" : "bg-blue-300"
@@ -107,6 +113,7 @@ export function StepCounter() {
           </button>
           <button
             type="button"
+            onPointerDown={handleMetronomePointerDown}
             onClick={toggleMetronome}
             className={`w-full py-3 rounded-3xl text-white text-lg font-bold shadow-md active:scale-95 transition-transform ${
               metronomeOn ? "bg-orange-400" : "bg-blue-300"
