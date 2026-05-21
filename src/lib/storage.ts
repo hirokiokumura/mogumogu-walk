@@ -75,11 +75,13 @@ export function loadTrainingData(): TrainingData {
 
 /** セッションを追加して保存する。6回上限を超える場合は保存しない */
 export function addSession(steps: number): TrainingData | null {
+  if (!Number.isFinite(steps) || steps < 0) return null;
+  const safeSteps = Math.floor(steps);
   const data = load();
   if (data.sessions.length >= MAX_SESSIONS) return null;
   const newSession: Session = {
     slot: data.sessions.length + 1,
-    steps,
+    steps: safeSteps,
     time: currentTime(),
   };
   const updated: TrainingData = {
