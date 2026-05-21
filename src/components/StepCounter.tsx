@@ -10,13 +10,14 @@ export function StepCounter() {
   const { state, steps, start, stop } = useStepCounter();
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sessionCount, setSessionCount] = useState(0);
+  const [sessionCount, setSessionCount] = useState<number | null>(null);
 
   useEffect(() => {
     setSessionCount(loadTrainingData().sessions.length);
   }, []);
 
-  const isFull = sessionCount >= MAX_SESSIONS;
+  const isLoaded = sessionCount !== null;
+  const isFull = isLoaded && sessionCount >= MAX_SESSIONS;
 
   const handleStop = () => {
     stop();
@@ -44,7 +45,7 @@ export function StepCounter() {
       <p className="text-gray-500 text-sm">歩</p>
 
       {state === "idle" && (
-        isFull ? (
+        !isLoaded ? null : isFull ? (
           <p className="text-gray-400 text-sm text-center">
             本日の計測は6回完了しました 🎉
           </p>
@@ -72,11 +73,19 @@ export function StepCounter() {
       )}
 
       {state === "denied" && (
-        <p className="text-red-400 text-sm text-center">
-          センサーの使用が許可されませんでした。
-          <br />
-          設定アプリで「モーションと方向」を許可してください。
-        </p>
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-red-400 text-sm text-center">
+            センサーの使用が許可されませんでした。
+            <br />
+            設定アプリで「モーションと方向」を許可してください。
+          </p>
+          <button
+            onClick={stop}
+            className="px-6 py-2 rounded-2xl bg-gray-200 text-gray-600 text-sm font-medium active:scale-95 transition-transform"
+          >
+            もう一度試す
+          </button>
+        </div>
       )}
 
       {savedSteps !== null && (
