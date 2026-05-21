@@ -12,6 +12,10 @@ export type TrainingData = {
 const STORAGE_KEY = "mogumogu-walk-training";
 const MAX_SESSIONS = 6;
 const CHANGE_EVENT = "mogumogu-storage-change";
+const EMPTY_SESSIONS: Session[] = [];
+
+let cachedSnapshotRaw: string | null = null;
+let cachedSnapshotSessions: Session[] = EMPTY_SESSIONS;
 
 function notify(): void {
   if (typeof window !== "undefined") {
@@ -22,15 +26,25 @@ function notify(): void {
 export function subscribeToSessions(callback: () => void): () => void {
   if (typeof window === "undefined") return () => {};
   window.addEventListener(CHANGE_EVENT, callback);
-  return () => window.removeEventListener(CHANGE_EVENT, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
 }
 
 export function getSessionsSnapshot(): Session[] {
-  return load().sessions;
+  const data = load();
+  const raw = JSON.stringify(data.sessions);
+  if (raw !== cachedSnapshotRaw) {
+    cachedSnapshotRaw = raw;
+    cachedSnapshotSessions = data.sessions;
+  }
+  return cachedSnapshotSessions;
 }
 
 export function getSessionsServerSnapshot(): Session[] {
-  return [];
+  return EMPTY_SESSIONS;
 }
 
 function today(): string {
