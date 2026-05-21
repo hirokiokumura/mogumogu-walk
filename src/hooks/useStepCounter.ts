@@ -26,7 +26,7 @@ export function useStepCounter() {
   const [steps, setSteps] = useState(0);
 
   const lastStepTimeRef = useRef<number>(0);
-  const lastMagnitudeRef = useRef<number>(0);
+  const lastMagnitudeRef = useRef<number | null>(null);
   const aboveThresholdRef = useRef<boolean>(false);
 
   const handleMotion = useCallback((event: DeviceMotionEvent) => {
@@ -34,6 +34,10 @@ export function useStepCounter() {
     if (!acc || acc.x == null || acc.y == null || acc.z == null) return;
 
     const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
+    if (lastMagnitudeRef.current === null) {
+      lastMagnitudeRef.current = magnitude;
+      return;
+    }
     const delta = Math.abs(magnitude - lastMagnitudeRef.current);
     lastMagnitudeRef.current = magnitude;
 
@@ -64,7 +68,7 @@ export function useStepCounter() {
     }
     setSteps(0);
     lastStepTimeRef.current = 0;
-    lastMagnitudeRef.current = 0;
+    lastMagnitudeRef.current = null;
     aboveThresholdRef.current = false;
     setState("counting");
   }, []);

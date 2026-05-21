@@ -2,7 +2,7 @@
 
 import { useStepCounter } from "@/hooks/useStepCounter";
 import { addSession, loadTrainingData } from "@/lib/storage";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const MAX_SESSIONS = 6;
 
@@ -10,8 +10,12 @@ export function StepCounter() {
   const { state, steps, start, stop } = useStepCounter();
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sessionCount, setSessionCount] = useState(0);
 
-  const sessionCount = loadTrainingData().sessions.length;
+  useEffect(() => {
+    setSessionCount(loadTrainingData().sessions.length);
+  }, []);
+
   const isFull = sessionCount >= MAX_SESSIONS;
 
   const handleStop = () => {
@@ -19,6 +23,7 @@ export function StepCounter() {
     const result = addSession(steps);
     if (result) {
       setSavedSteps(steps);
+      setSessionCount(result.sessions.length);
       setError(null);
     } else {
       setError("保存できませんでした");
