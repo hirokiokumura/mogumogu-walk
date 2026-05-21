@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { SessionList } from "@/components/SessionList";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useStepCounter } from "@/hooks/useStepCounter";
 import {
   addSession,
   deleteSession,
-  loadTrainingData,
-  type Session,
+  getSessionsServerSnapshot,
+  getSessionsSnapshot,
+  subscribeToSessions,
 } from "@/lib/storage";
 
 const MAX_SESSIONS = 6;
@@ -20,17 +21,15 @@ export function StepCounter() {
     toggle: toggleMetronome,
     stop: stopMetronome,
   } = useMetronome();
-  const [sessions, setSessions] = useState<Session[] | null>(null);
+  const sessions = useSyncExternalStore(
+    subscribeToSessions,
+    getSessionsSnapshot,
+    getSessionsServerSnapshot,
+  );
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSessions(loadTrainingData().sessions);
-  }, []);
-
-  const isLoaded = sessions !== null;
-  const isFull = isLoaded && sessions.length >= MAX_SESSIONS;
+  const isFull = sessions.length >= MAX_SESSIONS;
 
   const handleStart = () => {
     setSavedSteps(null);
@@ -44,7 +43,6 @@ export function StepCounter() {
     const result = addSession(steps);
     if (result) {
       setSavedSteps(steps);
-      setSessions(result.sessions);
       setError(null);
     } else {
       setError("保存できませんでした");
@@ -54,7 +52,6 @@ export function StepCounter() {
   const handleDelete = (slot: number) => {
     const result = deleteSession(slot);
     if (result) {
-      setSessions(result.sessions);
       setSavedSteps(null);
       setError(null);
     } else {
@@ -70,7 +67,7 @@ export function StepCounter() {
       <p className="text-gray-500 text-sm">歩</p>
 
       {state === "idle" &&
-        (!isLoaded ? null : isFull ? (
+        (isFull ? (
           <p className="text-gray-400 text-sm text-center">
             本日の計測は6回完了しました 🎉
           </p>
@@ -134,11 +131,9 @@ export function StepCounter() {
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
-      {isLoaded && (
-        <div className="w-full mt-2">
-          <SessionList sessions={sessions} onDelete={handleDelete} />
-        </div>
-      )}
+      <div className="w-full mt-2">
+        <SessionList sessions={sessions} onDelete={handleDelete} />
+      </div>
     </div>
   );
 }

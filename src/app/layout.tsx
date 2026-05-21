@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: "もぐもぐウォーク",
   description: "矯正トレーニング用歩数カウンター",
   manifest: "/mogumogu-walk/manifest.json",
+  icons: {
+    apple: [
+      { url: "/mogumogu-walk/icons/apple-touch-icon.png", sizes: "180x180" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -31,12 +36,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className="h-full">
-      <head>
-        <link
-          rel="apple-touch-icon"
-          href="/mogumogu-walk/icons/apple-touch-icon.png"
-        />
-      </head>
       <body className="min-h-full">
         {children}
         <SwRegister />
