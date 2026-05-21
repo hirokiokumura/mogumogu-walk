@@ -24,16 +24,26 @@ function currentTime(): string {
   });
 }
 
+function isValidData(data: unknown): data is TrainingData {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as TrainingData).date === "string" &&
+    Array.isArray((data as TrainingData).sessions)
+  );
+}
+
 function load(): TrainingData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { date: today(), sessions: [] };
-    const data = JSON.parse(raw) as TrainingData;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidData(parsed)) return { date: today(), sessions: [] };
     // 日付が変わっていたらリセット
-    if (data.date !== today()) {
+    if (parsed.date !== today()) {
       return { date: today(), sessions: [] };
     }
-    return data;
+    return parsed;
   } catch {
     return { date: today(), sessions: [] };
   }
