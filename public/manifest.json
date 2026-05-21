@@ -6,7 +6,7 @@
   "scope": "/mogumogu-walk/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FDE8FF",
+  "background_color": "#D8A4F0",
   "theme_color": "#D8A4F0",
   "lang": "ja",
   "icons": [
@@ -20,7 +20,7 @@
       "src": "/mogumogu-walk/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
