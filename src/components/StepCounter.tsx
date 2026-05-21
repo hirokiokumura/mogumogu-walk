@@ -18,6 +18,7 @@ export function StepCounter() {
   const { state, steps, start, stop } = useStepCounter();
   const {
     isOn: metronomeOn,
+    start: startMetronome,
     toggle: toggleMetronome,
     stop: stopMetronome,
   } = useMetronome();
@@ -35,6 +36,7 @@ export function StepCounter() {
     setSavedSteps(null);
     setError(null);
     start();
+    startMetronome();
   };
 
   const handleStop = () => {
