@@ -22,4 +22,4 @@ jobs:
         run: npm ci
 
       - name: Run Biome
-        run: npx @biomejs/biome ci .
+        run: npx @biomejs/biome@2.4.15 ci .
