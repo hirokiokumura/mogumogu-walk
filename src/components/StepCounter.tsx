@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useStepCounter } from "@/hooks/useStepCounter";
 import { addSession, loadTrainingData } from "@/lib/storage";
 
@@ -10,11 +10,10 @@ export function StepCounter() {
   const { state, steps, start, stop } = useStepCounter();
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sessionCount, setSessionCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    setSessionCount(loadTrainingData().sessions.length);
-  }, []);
+  const [sessionCount, setSessionCount] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    return loadTrainingData().sessions.length;
+  });
 
   const isLoaded = sessionCount !== null;
   const isFull = isLoaded && sessionCount >= MAX_SESSIONS;

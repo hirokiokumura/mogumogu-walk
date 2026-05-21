@@ -1,0 +1,20 @@
+{
+  "name": "もぐもぐウォーク",
+  "short_name": "もぐもぐ",
+  "description": "矯正トレーニング用歩数カウンター",
+  "start_url": "/mogumogu-walk/",
+  "scope": "/mogumogu-walk/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDE8FF",
+  "theme_color": "#D8A4F0",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/mogumogu-walk/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
