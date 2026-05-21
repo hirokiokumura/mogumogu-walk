@@ -32,10 +32,7 @@ export default function RootLayout({
   return (
     <html lang="ja" className="h-full">
       <head>
-        <link
-          rel="apple-touch-icon"
-          href="/mogumogu-walk/icons/icon.svg"
-        />
+        <link rel="apple-touch-icon" href="/mogumogu-walk/icons/icon.svg" />
       </head>
       <body className="min-h-full">
         {children}
