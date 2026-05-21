@@ -1,10 +1,12 @@
-const CACHE_NAME = "mogumogu-walk-v1";
+const CACHE_NAME = "mogumogu-walk-v2";
+const BASE_PATH = "/mogumogu-walk";
+const PRECACHE_URLS = [`${BASE_PATH}/`];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(["/mogumogu-walk/"]);
+      return cache.addAll(PRECACHE_URLS);
     }),
   );
 });
@@ -26,6 +28,10 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+  if (!url.pathname.startsWith(`${BASE_PATH}/`)) return;
 
   event.respondWith(
     fetch(event.request)
