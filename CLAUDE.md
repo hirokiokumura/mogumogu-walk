@@ -72,7 +72,7 @@ const nextConfig = {
 ### Web Audio API（メトロノーム）
 - `AudioContext` は**ユーザー操作後**に生成すること（iOS 制限）。
 - 音源ファイルは使用せず、オシレーターで生成する。
-- 初期状態は **OFF**。
+- 計測開始時の初期状態は **ON**（アプリ起動時には自動再生しない）。
 
 ## localStorage 設計
 
