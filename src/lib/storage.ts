@@ -44,6 +44,16 @@ function isValidData(data: unknown): data is TrainingData {
   );
 }
 
+/** 保存成功なら true、失敗（容量超過・Safari プライベートモード等）なら false */
+function save(data: TrainingData): boolean {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function load(): TrainingData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -62,20 +72,16 @@ function load(): TrainingData {
   }
 }
 
-function save(data: TrainingData): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    // 容量超過・ストレージ無効（Safari プライベートモード等）は無視
-  }
-}
-
 /** 今日のトレーニングデータを取得する */
 export function loadTrainingData(): TrainingData {
   return load();
 }
 
-/** セッションを追加して保存する。6回上限を超える場合は保存しない */
+/**
+ * セッションを追加して保存する。
+ * 成功時は更新後データを返す。
+ * 6回上限超過・steps 不正・保存失敗の場合は null を返す。
+ */
 export function addSession(steps: number): TrainingData | null {
   if (!Number.isFinite(steps) || steps < 0) return null;
   const safeSteps = Math.floor(steps);
@@ -90,23 +96,29 @@ export function addSession(steps: number): TrainingData | null {
     ...data,
     sessions: [...data.sessions, newSession],
   };
-  save(updated);
+  if (!save(updated)) return null;
   return updated;
 }
 
-/** 指定 slot のセッションを削除し、slot を 1 から詰め直す */
-export function deleteSession(slot: number): TrainingData {
+/**
+ * 指定 slot のセッションを削除し slot を 1 から詰め直す。
+ * 保存失敗の場合は null を返す。
+ */
+export function deleteSession(slot: number): TrainingData | null {
   const data = load();
   const filtered = data.sessions.filter((s) => s.slot !== slot);
   const renumbered = filtered.map((s, i) => ({ ...s, slot: i + 1 }));
   const updated: TrainingData = { ...data, sessions: renumbered };
-  save(updated);
+  if (!save(updated)) return null;
   return updated;
 }
 
-/** 今日の全記録を削除する */
-export function resetToday(): TrainingData {
+/**
+ * 今日の全記録を削除する。
+ * 保存失敗の場合は null を返す。
+ */
+export function resetToday(): TrainingData | null {
   const updated: TrainingData = { date: today(), sessions: [] };
-  save(updated);
+  if (!save(updated)) return null;
   return updated;
 }
