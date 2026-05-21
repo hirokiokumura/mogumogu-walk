@@ -34,8 +34,10 @@ export function useMetronome() {
   const [isOn, setIsOn] = useState(false);
   const ctxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startRequestRef = useRef(0);
 
   const stop = useCallback(() => {
+    startRequestRef.current += 1;
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -44,6 +46,9 @@ export function useMetronome() {
   }, []);
 
   const start = useCallback(async () => {
+    const requestId = startRequestRef.current + 1;
+    startRequestRef.current = requestId;
+
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -57,8 +62,13 @@ export function useMetronome() {
     }
     const ctx = ctxRef.current;
     if (ctx.state === "suspended") {
-      await ctx.resume();
+      try {
+        await ctx.resume();
+      } catch {
+        return;
+      }
     }
+    if (startRequestRef.current !== requestId) return;
     if (ctx.state !== "running") return;
 
     const intervalMs = (60 / BPM) * 1000;
@@ -78,6 +88,7 @@ export function useMetronome() {
   // アンマウント時にクリーンアップ
   useEffect(() => {
     return () => {
+      startRequestRef.current += 1;
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
       }
