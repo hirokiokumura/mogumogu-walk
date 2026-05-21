@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { SessionList } from "@/components/SessionList";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useStepCounter } from "@/hooks/useStepCounter";
@@ -18,6 +18,7 @@ export function StepCounter() {
   const { state, steps, start, stop } = useStepCounter();
   const {
     isOn: metronomeOn,
+    start: startMetronome,
     toggle: toggleMetronome,
     stop: stopMetronome,
   } = useMetronome();
@@ -31,9 +32,16 @@ export function StepCounter() {
 
   const isFull = sessions.length >= MAX_SESSIONS;
 
+  useEffect(() => {
+    if (state === "denied") {
+      stopMetronome();
+    }
+  }, [state, stopMetronome]);
+
   const handleStart = () => {
     setSavedSteps(null);
     setError(null);
+    void startMetronome();
     start();
   };
 
