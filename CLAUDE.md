@@ -30,7 +30,7 @@ Issue を実装する際は git worktree を使用して作業ディレクトリ
 ### worktree の作成
 
 ```bash
-git worktree add ../mogumogu-walk-issue-{番号} feature/issue-{番号}-{概要}
+git worktree add -b feature/issue-{番号}-{概要} ../mogumogu-walk-issue-{番号}
 ```
 
 ### 作業完了後の削除
