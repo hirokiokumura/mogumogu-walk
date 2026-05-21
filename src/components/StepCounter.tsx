@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { SessionList } from "@/components/SessionList";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useStepCounter } from "@/hooks/useStepCounter";
@@ -18,7 +18,6 @@ export function StepCounter() {
   const { state, steps, start, stop } = useStepCounter();
   const {
     isOn: metronomeOn,
-    start: startMetronome,
     toggle: toggleMetronome,
     stop: stopMetronome,
   } = useMetronome();
@@ -31,14 +30,6 @@ export function StepCounter() {
   const [error, setError] = useState<string | null>(null);
 
   const isFull = sessions.length >= MAX_SESSIONS;
-
-  useEffect(() => {
-    if (state === "counting") {
-      startMetronome();
-    } else if (state === "denied") {
-      stopMetronome();
-    }
-  }, [state, startMetronome, stopMetronome]);
 
   const handleStart = () => {
     setSavedSteps(null);
@@ -81,13 +72,24 @@ export function StepCounter() {
             本日の計測は6回完了しました 🎉
           </p>
         ) : (
-          <button
-            type="button"
-            onClick={handleStart}
-            className="w-full py-4 rounded-3xl bg-green-400 text-white text-xl font-bold shadow-md active:scale-95 transition-transform"
-          >
-            🐾 はじめる
-          </button>
+          <div className="grid w-full grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={handleStart}
+              className="py-4 rounded-3xl bg-green-400 text-white text-lg font-bold shadow-md active:scale-95 transition-transform"
+            >
+              🐾 はじめる
+            </button>
+            <button
+              type="button"
+              onClick={toggleMetronome}
+              className={`py-4 rounded-3xl text-white text-lg font-bold shadow-md active:scale-95 transition-transform ${
+                metronomeOn ? "bg-orange-400" : "bg-blue-300"
+              }`}
+            >
+              {metronomeOn ? "🔔 ON" : "🔕 OFF"}
+            </button>
+          </div>
         ))}
 
       {state === "requesting" && (

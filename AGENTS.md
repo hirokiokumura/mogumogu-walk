@@ -18,7 +18,7 @@ iPhone Safari 上で動作し、GitHub Pages でホストされる。
 ### iPhone Safari 固有の制約
 - `DeviceMotionEvent.requestPermission()` はユーザーのタップ後にのみ呼び出す。
 - `AudioContext` もユーザー操作後に生成する（iOS の自動再生ブロック対策）。
-- メトロノームの初期状態は OFF であること。
+- メトロノームは「はじめる」と並列に表示し、初期状態は OFF であること。
 
 ### データ整合性
 - localStorage のキーは `mogumogu-walk-training` で統一されているか。

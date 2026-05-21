@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const BPM = 120;
 const CLICK_DURATION = 0.05;
 
+type AudioContextConstructor = new () => AudioContext;
+
 function playClick(ctx: AudioContext) {
   const oscillator = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -20,12 +22,22 @@ function playClick(ctx: AudioContext) {
   oscillator.stop(ctx.currentTime + CLICK_DURATION);
 }
 
+function getAudioContextConstructor(): AudioContextConstructor | undefined {
+  return (
+    window.AudioContext ??
+    (window as typeof window & { webkitAudioContext?: AudioContextConstructor })
+      .webkitAudioContext
+  );
+}
+
 export function useMetronome() {
   const [isOn, setIsOn] = useState(false);
   const ctxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startRequestRef = useRef(0);
 
   const stop = useCallback(() => {
+    startRequestRef.current += 1;
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -33,7 +45,10 @@ export function useMetronome() {
     setIsOn(false);
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback(async () => {
+    const requestId = startRequestRef.current + 1;
+    startRequestRef.current = requestId;
+
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -41,12 +56,20 @@ export function useMetronome() {
 
     // iOS Safari: AudioContext はユーザー操作後に生成する
     if (!ctxRef.current) {
-      ctxRef.current = new AudioContext();
+      const AudioContextClass = getAudioContextConstructor();
+      if (!AudioContextClass) return;
+      ctxRef.current = new AudioContextClass();
     }
     const ctx = ctxRef.current;
     if (ctx.state === "suspended") {
-      ctx.resume();
+      try {
+        await ctx.resume();
+      } catch {
+        return;
+      }
     }
+    if (startRequestRef.current !== requestId) return;
+    if (ctx.state !== "running") return;
 
     const intervalMs = (60 / BPM) * 1000;
     playClick(ctx);
@@ -54,17 +77,18 @@ export function useMetronome() {
     setIsOn(true);
   }, []);
 
-  const toggle = useCallback(() => {
+  const toggle = useCallback(async () => {
     if (isOn) {
       stop();
     } else {
-      start();
+      await start();
     }
   }, [isOn, stop, start]);
 
   // アンマウント時にクリーンアップ
   useEffect(() => {
     return () => {
+      startRequestRef.current += 1;
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
       }
