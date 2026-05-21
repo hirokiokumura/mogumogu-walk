@@ -3,23 +3,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const BPM = 120;
-const CLICK_DURATION = 0.05;
+const CLICK_DURATION = 0.09;
 
 type AudioContextConstructor = new () => AudioContext;
 
 function playClick(ctx: AudioContext) {
+  const now = ctx.currentTime;
   const oscillator = ctx.createOscillator();
   const gain = ctx.createGain();
   oscillator.connect(gain);
   gain.connect(ctx.destination);
-  oscillator.frequency.value = 1000;
-  gain.gain.setValueAtTime(1, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(
-    0.001,
-    ctx.currentTime + CLICK_DURATION,
-  );
-  oscillator.start(ctx.currentTime);
-  oscillator.stop(ctx.currentTime + CLICK_DURATION);
+  oscillator.type = "square";
+  oscillator.frequency.setValueAtTime(1200, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.35, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + CLICK_DURATION);
+  oscillator.start(now);
+  oscillator.stop(now + CLICK_DURATION);
 }
 
 function getAudioContextConstructor(): AudioContextConstructor | undefined {
