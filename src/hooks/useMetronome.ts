@@ -122,6 +122,10 @@ export function useMetronome() {
       const currentCtx = ctxRef.current;
       const currentMasterGain = masterGainRef.current;
       if (!currentCtx || !currentMasterGain) return;
+      // バックグラウンド復帰等でタイマーが大きく遅延した場合は未処理拍をスキップして現在時刻から再スタート
+      if (nextBeatTimeRef.current < currentCtx.currentTime - LOOKAHEAD_SEC) {
+        nextBeatTimeRef.current = currentCtx.currentTime;
+      }
       while (nextBeatTimeRef.current < currentCtx.currentTime + LOOKAHEAD_SEC) {
         playClick(currentCtx, currentMasterGain, nextBeatTimeRef.current);
         nextBeatTimeRef.current += intervalSec;
