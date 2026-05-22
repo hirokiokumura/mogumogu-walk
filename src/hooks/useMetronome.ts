@@ -61,7 +61,7 @@ export function useMetronome() {
       ctxRef.current = new AudioContextClass();
     }
     const ctx = ctxRef.current;
-    if (ctx.state === "suspended") {
+    if (ctx.state !== "running") {
       try {
         await ctx.resume();
       } catch {
@@ -69,7 +69,6 @@ export function useMetronome() {
       }
     }
     if (startRequestRef.current !== requestId) return;
-    if (ctx.state !== "running") return;
 
     const intervalMs = (60 / BPM) * 1000;
     playClick(ctx);
