@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type StepCounterState = "idle" | "requesting" | "counting" | "denied";
 
 const THRESHOLD = 1.5;
-const MIN_INTERVAL_MS = 250;
+const MIN_INTERVAL_MS = 300;
+const MAX_INTERVAL_MS = 800;
 
 async function requestMotionPermission(): Promise<boolean> {
   if (
@@ -49,9 +50,21 @@ export function useStepCounter() {
     const now = performance.now();
     if (delta > THRESHOLD && !aboveThresholdRef.current) {
       aboveThresholdRef.current = true;
-      if (now - lastStepTimeRef.current > MIN_INTERVAL_MS) {
+      if (lastStepTimeRef.current === 0) {
+        // 最初の1歩は無条件でカウントしリズムの基準点を設定
         lastStepTimeRef.current = now;
         setSteps((s) => s + 1);
+      } else {
+        const interval = now - lastStepTimeRef.current;
+        if (interval >= MIN_INTERVAL_MS && interval <= MAX_INTERVAL_MS) {
+          // 歩行リズム（300〜800ms）に合致 → カウント
+          lastStepTimeRef.current = now;
+          setSteps((s) => s + 1);
+        } else if (interval > MAX_INTERVAL_MS) {
+          // 長い停止後 → 基準時刻をリセット（次の有効なリズムを待つ）
+          lastStepTimeRef.current = now;
+        }
+        // interval < MIN_INTERVAL_MS はノイズとして無視
       }
     } else if (delta <= THRESHOLD) {
       aboveThresholdRef.current = false;
