@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type StepCounterState = "idle" | "requesting" | "counting" | "denied";
 
 const THRESHOLD = 1.5;
-const MIN_INTERVAL_MS = 250;
+const MIN_INTERVAL_MS = 300;
 
 async function requestMotionPermission(): Promise<boolean> {
   if (
@@ -49,7 +49,7 @@ export function useStepCounter() {
     const now = performance.now();
     if (delta > THRESHOLD && !aboveThresholdRef.current) {
       aboveThresholdRef.current = true;
-      if (now - lastStepTimeRef.current > MIN_INTERVAL_MS) {
+      if (now - lastStepTimeRef.current >= MIN_INTERVAL_MS) {
         lastStepTimeRef.current = now;
         setSteps((s) => s + 1);
       }
