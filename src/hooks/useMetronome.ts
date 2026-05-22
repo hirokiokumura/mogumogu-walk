@@ -103,7 +103,6 @@ export function useMetronome() {
     if (!clickBufferRef.current) {
       clickBufferRef.current = createClickBuffer(ctx);
     }
-    const clickBuffer = clickBufferRef.current;
 
     const masterGain = ctx.createGain();
     masterGain.connect(ctx.destination);
@@ -116,13 +115,14 @@ export function useMetronome() {
     const schedule = () => {
       const currentCtx = ctxRef.current;
       const currentMasterGain = masterGainRef.current;
-      if (!currentCtx || !currentMasterGain) return;
+      const currentBuffer = clickBufferRef.current;
+      if (!currentCtx || !currentMasterGain || !currentBuffer) return;
       if (nextBeatTimeRef.current < currentCtx.currentTime - LOOKAHEAD_SEC) {
         nextBeatTimeRef.current = currentCtx.currentTime + FIRST_BEAT_DELAY;
       }
       while (nextBeatTimeRef.current < currentCtx.currentTime + LOOKAHEAD_SEC) {
         const source = currentCtx.createBufferSource();
-        source.buffer = clickBuffer;
+        source.buffer = currentBuffer;
         source.connect(currentMasterGain);
         source.start(nextBeatTimeRef.current);
         nextBeatTimeRef.current += intervalSec;
