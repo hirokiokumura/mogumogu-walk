@@ -57,7 +57,7 @@ export function useStepCounter() {
       } else {
         const interval = now - lastStepTimeRef.current;
         if (interval >= MIN_INTERVAL_MS && interval <= MAX_INTERVAL_MS) {
-          // 歩行リズム（300〜800ms）に合致 → カウント
+          // 歩行リズム（300〜1200ms）に合致 → カウント
           lastStepTimeRef.current = now;
           setSteps((s) => s + 1);
         } else if (interval > MAX_INTERVAL_MS) {
