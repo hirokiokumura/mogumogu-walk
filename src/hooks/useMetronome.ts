@@ -3,25 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const BPM = 120;
-const CLICK_DURATION = 0.09;
 const SCHEDULE_INTERVAL_MS = 50;
 const LOOKAHEAD_SEC = 0.1;
+const FIRST_BEAT_DELAY = 0.05;
 
 type AudioContextConstructor = new () => AudioContext;
-
-function playClick(ctx: AudioContext, masterGain: GainNode, time: number) {
-  const oscillator = ctx.createOscillator();
-  const gain = ctx.createGain();
-  oscillator.connect(gain);
-  gain.connect(masterGain);
-  oscillator.type = "square";
-  oscillator.frequency.setValueAtTime(1200, time);
-  gain.gain.setValueAtTime(0.0001, time);
-  gain.gain.exponentialRampToValueAtTime(0.35, time + 0.005);
-  gain.gain.exponentialRampToValueAtTime(0.0001, time + CLICK_DURATION);
-  oscillator.start(time);
-  oscillator.stop(time + CLICK_DURATION);
-}
 
 function getAudioContextConstructor(): AudioContextConstructor | undefined {
   return (
@@ -31,19 +17,24 @@ function getAudioContextConstructor(): AudioContextConstructor | undefined {
   );
 }
 
-// iOS 12以下向け: click ハンドラの同期コンテキストで silent buffer を再生して AudioContext を unlock する
-function unlockWithSilentBuffer(ctx: AudioContext) {
-  const buffer = ctx.createBuffer(1, 1, 22050);
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(ctx.destination);
-  source.start(0);
+// クリック音をPCMデータとして生成する（OscillatorNodeのゲイン自動化はiOSで不安定なため）
+function createClickBuffer(ctx: AudioContext): AudioBuffer {
+  const { sampleRate } = ctx;
+  const length = Math.floor(sampleRate * 0.05); // 50ms
+  const buffer = ctx.createBuffer(1, length, sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) {
+    const t = i / sampleRate;
+    data[i] = Math.sin(2 * Math.PI * 1200 * t) * Math.exp(-t * 100) * 0.9;
+  }
+  return buffer;
 }
 
 export function useMetronome() {
   const [isOn, setIsOn] = useState(false);
   const ctxRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
+  const clickBufferRef = useRef<AudioBuffer | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextBeatTimeRef = useRef(0);
   const startRequestRef = useRef(0);
@@ -54,7 +45,6 @@ export function useMetronome() {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    // スケジュール済みの音を即座にミュートして stop 後の残響を防ぐ
     if (masterGainRef.current && ctxRef.current) {
       masterGainRef.current.gain.setValueAtTime(0, ctxRef.current.currentTime);
       masterGainRef.current.disconnect();
@@ -72,7 +62,6 @@ export function useMetronome() {
       intervalRef.current = null;
     }
 
-    // iOS Safari: AudioContext はユーザー操作後に生成する
     if (!ctxRef.current) {
       const AudioContextClass = getAudioContextConstructor();
       if (!AudioContextClass) return;
@@ -81,24 +70,27 @@ export function useMetronome() {
     const ctx = ctxRef.current;
 
     if (ctx.state !== "running") {
-      // suspended のときのみ silent buffer で unlock（interrupted 状態では unlock 不要）
-      if (ctx.state === "suspended") {
-        unlockWithSilentBuffer(ctx);
-      }
+      // suspended/interrupted どちらの状態でも silent buffer + resume でアンロック
+      const silentBuf = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const silentSrc = ctx.createBufferSource();
+      silentSrc.buffer = silentBuf;
+      silentSrc.connect(ctx.destination);
+      silentSrc.start(0);
+
       try {
         await ctx.resume();
       } catch (e) {
         console.warn("[useMetronome] AudioContext.resume() failed:", e);
         return;
       }
-      // resume 後も running でなければ再生しない（非running状態を明示列挙して narrowing を回避）
+
       if (
         ctx.state === "suspended" ||
         ctx.state === "interrupted" ||
         ctx.state === "closed"
       ) {
         console.warn(
-          "[useMetronome] AudioContext state is not running after resume:",
+          "[useMetronome] AudioContext not running after resume:",
           ctx.state,
         );
         return;
@@ -107,27 +99,32 @@ export function useMetronome() {
 
     if (startRequestRef.current !== requestId) return;
 
-    // master gain node を新規作成（stop 時の即座ミュートに使用）
+    // クリック音バッファを初回のみ生成（AudioContextと同じ生存期間）
+    if (!clickBufferRef.current) {
+      clickBufferRef.current = createClickBuffer(ctx);
+    }
+    const clickBuffer = clickBufferRef.current;
+
     const masterGain = ctx.createGain();
     masterGain.connect(ctx.destination);
     masterGainRef.current = masterGain;
 
-    // Web Audio Scheduler: AudioContext.currentTime ベースでビートをスケジュールし
-    // setInterval の drift に関係なく正確なタイミングを保証する
     const intervalSec = 60 / BPM;
-    nextBeatTimeRef.current = ctx.currentTime;
+    // 最初のビートを必ず未来時刻にスケジュールする（過去時刻だとiOSで無音になる場合がある）
+    nextBeatTimeRef.current = ctx.currentTime + FIRST_BEAT_DELAY;
 
-    // ctxRef / masterGainRef を介してアクセスすることでクロージャが ctx を強参照しない
     const schedule = () => {
       const currentCtx = ctxRef.current;
       const currentMasterGain = masterGainRef.current;
       if (!currentCtx || !currentMasterGain) return;
-      // バックグラウンド復帰等でタイマーが大きく遅延した場合は未処理拍をスキップして現在時刻から再スタート
       if (nextBeatTimeRef.current < currentCtx.currentTime - LOOKAHEAD_SEC) {
-        nextBeatTimeRef.current = currentCtx.currentTime;
+        nextBeatTimeRef.current = currentCtx.currentTime + FIRST_BEAT_DELAY;
       }
       while (nextBeatTimeRef.current < currentCtx.currentTime + LOOKAHEAD_SEC) {
-        playClick(currentCtx, currentMasterGain, nextBeatTimeRef.current);
+        const source = currentCtx.createBufferSource();
+        source.buffer = clickBuffer;
+        source.connect(currentMasterGain);
+        source.start(nextBeatTimeRef.current);
         nextBeatTimeRef.current += intervalSec;
       }
     };
@@ -145,7 +142,6 @@ export function useMetronome() {
     }
   }, [isOn, stop, start]);
 
-  // アンマウント時にクリーンアップ
   useEffect(() => {
     return () => {
       startRequestRef.current += 1;
@@ -154,6 +150,8 @@ export function useMetronome() {
       }
       masterGainRef.current?.disconnect();
       ctxRef.current?.close();
+      ctxRef.current = null;
+      clickBufferRef.current = null;
     };
   }, []);
 
