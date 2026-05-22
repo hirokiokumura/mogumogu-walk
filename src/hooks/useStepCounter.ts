@@ -6,7 +6,7 @@ type StepCounterState = "idle" | "requesting" | "counting" | "denied";
 
 const THRESHOLD = 1.5;
 const MIN_INTERVAL_MS = 300;
-const MAX_INTERVAL_MS = 800;
+const MAX_INTERVAL_MS = 1200;
 
 async function requestMotionPermission(): Promise<boolean> {
   if (
