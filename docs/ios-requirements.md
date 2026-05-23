@@ -407,6 +407,36 @@ Swift 6 ではコンパイラが並行性エラーを厳格にチェックする
 - AVAudioEngine セットアップ・操作: `@MainActor` 付きの ViewModel メソッドで行う
 - `Sendable` 準拠が必要な型には `@unchecked Sendable` または actor isolation を明示する
 
+### ログ戦略
+
+TestFlight 配布後の問題調査（「歩数が正しくない」「メトロノームが止まった」等）に対応するため、アプリ起動時からログを組み込む。
+
+**採用: `os.Logger`**（iOS 14+、外部依存なし、TestFlight ログに自動反映）
+
+```swift
+import os.log
+
+extension Logger {
+    static let pedometer = Logger(subsystem: "com.yourname.mogumogu-walk", category: "pedometer")
+    static let metronome = Logger(subsystem: "com.yourname.mogumogu-walk", category: "metronome")
+    static let session   = Logger(subsystem: "com.yourname.mogumogu-walk", category: "session")
+}
+
+// 使用例
+Logger.pedometer.info("startUpdates from: \(sessionStartTime)")
+Logger.pedometer.error("queryPedometerData failed: \(error.localizedDescription)")
+// 歩数は個人情報のため .private でマスク
+Logger.session.debug("steps: \(steps, privacy: .private)")
+```
+
+| ログレベル | 用途 | リリースビルドで残るか |
+|-----------|------|---------------------|
+| `.debug` | 詳細な内部状態 | 残らない |
+| `.info` | 主要な操作（計測開始・停止・保存） | 残る |
+| `.error` | API 失敗・保存エラー等 | 残る |
+
+ログは `Console.app`（Mac）または Xcode のデバッグコンソールで確認できる。
+
 ---
 
 ## 7. Info.plist 必須エントリ
@@ -516,6 +546,19 @@ TestFlight アップロード時に未記載だと警告が出る。
   5. 家族が TestFlight からインストールまたはアップデート
 ```
 
+### クラッシュレポート
+
+- Xcode → Window → Organizer → Crashes でテスターからのクラッシュログを確認する
+- テスターには TestFlight の「自動診断情報送信」を有効化するよう依頼する
+- Firebase Crashlytics 等の外部クラッシュレポートツールは本バージョンでは使用しない
+
+### バージョン管理
+
+| 項目 | 方針 |
+|------|------|
+| バージョン番号 | セマンティックバージョニング（`MAJOR.MINOR.PATCH`）。初回リリースは `1.0.0` |
+| ビルド番号 | TestFlight アップロードのたびにインクリメント（Xcode 自動設定可） |
+
 ---
 
 ## 10. テスト戦略
@@ -527,6 +570,17 @@ TestFlight アップロード時に未記載だと警告が出る。
 | 手動テスト（実機必須） | CMPedometer 歩数精度・バックグラウンド再生・着信割り込み | 実機 iPhone |
 
 slot 採番ロジック（削除後の詰め直し）はバグが混入しやすいためユニットテストを最優先で実装する。
+
+### ユニットテストケース（slot 採番ロジック）
+
+| ケース | 入力 | 期待結果 |
+|--------|------|---------|
+| 先頭削除 | slot[1,2,3] → 1を削除 | slot[1,2] |
+| 中間削除 | slot[1,2,3] → 2を削除 | slot[1,2] |
+| 末尾削除 | slot[1,2,3] → 3を削除 | slot[1,2] |
+| 1件のみ削除 | slot[1] → 1を削除 | slot[] |
+| 6件フル → 末尾削除 | slot[1,2,3,4,5,6] → 6を削除 | slot[1,2,3,4,5]、はじめるボタンが活性化 |
+| 6件フル → 全削除 | slot[1,2,3,4,5,6] → 全削除 | slot[]、はじめるボタンが活性化 |
 
 ---
 
