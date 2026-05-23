@@ -23,3 +23,9 @@ jobs:
 
       - name: Run Biome
         run: npx @biomejs/biome@2.4.15 ci .
+
+      - name: Install Playwright WebKit
+        run: npx playwright install --with-deps webkit
+
+      - name: Run Playwright
+        run: npm run test:e2e

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const BPM = 120;
 const SCHEDULE_INTERVAL_MS = 50;
 const LOOKAHEAD_SEC = 0.1;
-const FIRST_BEAT_DELAY = 0.02;
+const FIRST_BEAT_DELAY = 0.1;
 
 type AudioContextConstructor = new () => AudioContext;
 
@@ -42,6 +42,14 @@ function playClick(
   source.start(when);
 }
 
+function isAudioContextBlocked(ctx: AudioContext): boolean {
+  return (
+    ctx.state === "suspended" ||
+    ctx.state === "interrupted" ||
+    ctx.state === "closed"
+  );
+}
+
 export function useMetronome() {
   const [isOn, setIsOn] = useState(false);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -65,7 +73,7 @@ export function useMetronome() {
     setIsOn(false);
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback(async () => {
     const requestId = startRequestRef.current + 1;
     startRequestRef.current = requestId;
 
@@ -93,40 +101,34 @@ export function useMetronome() {
     masterGain.connect(ctx.destination);
     masterGainRef.current = masterGain;
 
-    const intervalSec = 60 / BPM;
-    const firstBeatTime = ctx.currentTime + FIRST_BEAT_DELAY;
-
-    // iPhone Safariでは、初回の実音をタップ処理の同期範囲で予約することが重要。
-    // resume() の完了を待ってから音源を作ると、無音のままになる端末がある。
-    playClick(ctx, masterGain, clickBuffer, firstBeatTime);
-    nextBeatTimeRef.current = firstBeatTime + intervalSec;
-
     if (ctx.state !== "running") {
-      const resumePromise = ctx.resume();
-
-      void resumePromise
-        .then(() => {
-          if (startRequestRef.current !== requestId) return;
-          if (
-            ctx.state === "suspended" ||
-            ctx.state === "interrupted" ||
-            ctx.state === "closed"
-          ) {
-            console.warn(
-              "[useMetronome] AudioContext not running after resume:",
-              ctx.state,
-            );
-            stop();
-          }
-        })
-        .catch((e) => {
-          if (startRequestRef.current !== requestId) return;
-          console.warn("[useMetronome] AudioContext.resume() failed:", e);
-          stop();
-        });
+      try {
+        await ctx.resume();
+      } catch (e) {
+        if (startRequestRef.current !== requestId) return;
+        console.warn("[useMetronome] AudioContext.resume() failed:", e);
+        stop();
+        return;
+      }
     }
 
     if (startRequestRef.current !== requestId) return;
+    if (isAudioContextBlocked(ctx)) {
+      console.warn(
+        "[useMetronome] AudioContext not running after resume:",
+        ctx.state,
+      );
+      stop();
+      return;
+    }
+
+    const intervalSec = 60 / BPM;
+    const firstBeatTime = ctx.currentTime + FIRST_BEAT_DELAY;
+
+    // iPhone Safariでは、suspended のまま予約した初回音が捨てられる場合がある。
+    // resume() で running になったあと、最初の実音クリックを予約する。
+    playClick(ctx, masterGain, clickBuffer, firstBeatTime);
+    nextBeatTimeRef.current = firstBeatTime + intervalSec;
 
     const schedule = () => {
       const currentCtx = ctxRef.current;
