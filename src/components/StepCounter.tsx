@@ -20,6 +20,7 @@ export function StepCounter() {
     isOn: metronomeOn,
     toggle: toggleMetronome,
     stop: stopMetronome,
+    debug: metronomeDebug,
   } = useMetronome();
   const sessions = useSyncExternalStore(
     subscribeToSessions,
@@ -137,6 +138,32 @@ export function StepCounter() {
           </button>
         </div>
       )}
+
+      <section className="w-full border-t border-gray-200 pt-3 text-left">
+        <h2 className="text-xs font-bold text-gray-500">メトロノーム診断</h2>
+        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-gray-500">
+          <dt>対応</dt>
+          <dd>{metronomeDebug.supported ? "yes" : "no"}</dd>
+          <dt>種類</dt>
+          <dd>{metronomeDebug.contextType}</dd>
+          <dt>状態</dt>
+          <dd>{metronomeDebug.contextState}</dd>
+          <dt>resume</dt>
+          <dd>{metronomeDebug.resumeStatus}</dd>
+          <dt>処理</dt>
+          <dd>{metronomeDebug.lastStep}</dd>
+          <dt>start</dt>
+          <dd>{metronomeDebug.clickStarts}</dd>
+          <dt>時刻</dt>
+          <dd>
+            {metronomeDebug.currentTime} / {metronomeDebug.scheduledAt}
+          </dd>
+          <dt>Hz</dt>
+          <dd>{metronomeDebug.sampleRate}</dd>
+          <dt>エラー</dt>
+          <dd className="break-all">{metronomeDebug.error}</dd>
+        </dl>
+      </section>
 
       {savedSteps !== null && (
         <p className="text-green-600 text-sm font-medium">

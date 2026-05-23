@@ -8,13 +8,53 @@ const LOOKAHEAD_SEC = 0.1;
 const FIRST_BEAT_DELAY = 0.1;
 
 type AudioContextConstructor = new () => AudioContext;
+type AudioContextType = "AudioContext" | "webkitAudioContext" | "none";
+type ResumeStatus = "idle" | "not-needed" | "pending" | "resolved" | "failed";
 
-function getAudioContextConstructor(): AudioContextConstructor | undefined {
-  return (
-    window.AudioContext ??
-    (window as typeof window & { webkitAudioContext?: AudioContextConstructor })
-      .webkitAudioContext
-  );
+export type MetronomeDebugInfo = {
+  supported: boolean;
+  contextType: AudioContextType;
+  contextState: string;
+  resumeStatus: ResumeStatus;
+  lastStep: string;
+  clickStarts: number;
+  currentTime: string;
+  scheduledAt: string;
+  sampleRate: string;
+  error: string;
+};
+
+const INITIAL_DEBUG_INFO: MetronomeDebugInfo = {
+  supported: false,
+  contextType: "none",
+  contextState: "not-created",
+  resumeStatus: "idle",
+  lastStep: "idle",
+  clickStarts: 0,
+  currentTime: "-",
+  scheduledAt: "-",
+  sampleRate: "-",
+  error: "-",
+};
+
+function getAudioContextSupport():
+  | {
+      type: Exclude<AudioContextType, "none">;
+      constructor: AudioContextConstructor;
+    }
+  | { type: "none"; constructor: undefined } {
+  if (window.AudioContext) {
+    return { type: "AudioContext", constructor: window.AudioContext };
+  }
+
+  const webkitAudioContext = (
+    window as typeof window & { webkitAudioContext?: AudioContextConstructor }
+  ).webkitAudioContext;
+  if (webkitAudioContext) {
+    return { type: "webkitAudioContext", constructor: webkitAudioContext };
+  }
+
+  return { type: "none", constructor: undefined };
 }
 
 // クリック音をPCMデータとして生成する（OscillatorNodeのゲイン自動化はiOSで不安定なため）
@@ -50,14 +90,25 @@ function isAudioContextBlocked(ctx: AudioContext): boolean {
   );
 }
 
+function formatAudioTime(value: number): string {
+  return value.toFixed(3);
+}
+
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  return String(e);
+}
+
 export function useMetronome() {
   const [isOn, setIsOn] = useState(false);
+  const [debug, setDebug] = useState<MetronomeDebugInfo>(INITIAL_DEBUG_INFO);
   const ctxRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
   const clickBufferRef = useRef<AudioBuffer | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextBeatTimeRef = useRef(0);
   const startRequestRef = useRef(0);
+  const clickStartsRef = useRef(0);
 
   const stop = useCallback(() => {
     startRequestRef.current += 1;
@@ -70,6 +121,11 @@ export function useMetronome() {
       masterGainRef.current.disconnect();
       masterGainRef.current = null;
     }
+    setDebug((current) => ({
+      ...current,
+      contextState: ctxRef.current?.state ?? current.contextState,
+      lastStep: "stopped",
+    }));
     setIsOn(false);
   }, []);
 
@@ -83,12 +139,40 @@ export function useMetronome() {
     }
 
     if (!ctxRef.current) {
-      const AudioContextClass = getAudioContextConstructor();
-      if (!AudioContextClass) return;
-      ctxRef.current = new AudioContextClass();
+      const support = getAudioContextSupport();
+      setDebug((current) => ({
+        ...current,
+        supported: support.type !== "none",
+        contextType: support.type,
+        lastStep: "audio-context-support-checked",
+        error: "-",
+      }));
+      if (!support.constructor) {
+        setDebug((current) => ({
+          ...current,
+          contextState: "unavailable",
+          lastStep: "audio-context-unavailable",
+          error: "AudioContext is not available",
+        }));
+        return;
+      }
+      ctxRef.current = new support.constructor();
       clickBufferRef.current = null;
     }
     const ctx = ctxRef.current;
+    clickStartsRef.current = 0;
+    setDebug((current) => ({
+      ...current,
+      supported: true,
+      contextState: ctx.state,
+      resumeStatus: ctx.state === "running" ? "not-needed" : "idle",
+      lastStep: "audio-context-created",
+      clickStarts: 0,
+      currentTime: formatAudioTime(ctx.currentTime),
+      scheduledAt: "-",
+      sampleRate: String(ctx.sampleRate),
+      error: "-",
+    }));
 
     // クリック音バッファを初回のみ生成（AudioContextと同じ生存期間）
     if (!clickBufferRef.current) {
@@ -102,14 +186,35 @@ export function useMetronome() {
     masterGainRef.current = masterGain;
 
     if (ctx.state !== "running") {
+      setDebug((current) => ({
+        ...current,
+        contextState: ctx.state,
+        resumeStatus: "pending",
+        lastStep: "resume-started",
+        currentTime: formatAudioTime(ctx.currentTime),
+      }));
       try {
         await ctx.resume();
       } catch (e) {
         if (startRequestRef.current !== requestId) return;
         console.warn("[useMetronome] AudioContext.resume() failed:", e);
+        setDebug((current) => ({
+          ...current,
+          contextState: ctx.state,
+          resumeStatus: "failed",
+          lastStep: "resume-failed",
+          error: getErrorMessage(e),
+        }));
         stop();
         return;
       }
+      setDebug((current) => ({
+        ...current,
+        contextState: ctx.state,
+        resumeStatus: "resolved",
+        lastStep: "resume-resolved",
+        currentTime: formatAudioTime(ctx.currentTime),
+      }));
     }
 
     if (startRequestRef.current !== requestId) return;
@@ -118,6 +223,12 @@ export function useMetronome() {
         "[useMetronome] AudioContext not running after resume:",
         ctx.state,
       );
+      setDebug((current) => ({
+        ...current,
+        contextState: ctx.state,
+        lastStep: "audio-context-blocked",
+        error: `AudioContext state is ${ctx.state}`,
+      }));
       stop();
       return;
     }
@@ -128,6 +239,16 @@ export function useMetronome() {
     // iPhone Safariでは、suspended のまま予約した初回音が捨てられる場合がある。
     // resume() で running になったあと、最初の実音クリックを予約する。
     playClick(ctx, masterGain, clickBuffer, firstBeatTime);
+    clickStartsRef.current += 1;
+    setDebug((current) => ({
+      ...current,
+      contextState: ctx.state,
+      lastStep: "first-click-scheduled",
+      clickStarts: clickStartsRef.current,
+      currentTime: formatAudioTime(ctx.currentTime),
+      scheduledAt: formatAudioTime(firstBeatTime),
+      error: "-",
+    }));
     nextBeatTimeRef.current = firstBeatTime + intervalSec;
 
     const schedule = () => {
@@ -175,5 +296,5 @@ export function useMetronome() {
     };
   }, []);
 
-  return { isOn, start, toggle, stop };
+  return { isOn, start, toggle, stop, debug };
 }
