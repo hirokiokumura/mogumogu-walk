@@ -9,6 +9,8 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
 
 # next.js
 /.next/
@@ -24,6 +26,7 @@ Thumbs.db
 
 # AI coding tools (install with: npx modern-web-guidance@latest install)
 /.agents/
+/.claude/
 
 # editors
 .vscode/

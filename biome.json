@@ -20,6 +20,14 @@
     }
   },
   "files": {
-    "includes": ["**", "!.next", "!out", "!node_modules"]
+    "includes": [
+      "**",
+      "!.claude",
+      "!.next",
+      "!node_modules",
+      "!out",
+      "!playwright-report",
+      "!test-results"
+    ]
   }
 }
