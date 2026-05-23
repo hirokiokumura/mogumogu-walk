@@ -1,5 +1,32 @@
 # もぐもぐウォーク iOS アプリ 要件定義
 
+## 0. 開発開始前の準備（初回のみ）
+
+iOS アプリ開発・TestFlight 配布には、コードを書く前に以下の準備が必要。
+未対応の場合、開発開始まで数日かかることがある。
+
+| 準備項目 | 内容 | 担当 | 完了 |
+|---------|------|------|----|
+| **Mac** | macOS 15 (Sequoia) 以上 + Xcode 17（iOS 26 SDK 同梱、約15GB） | [要記入] | [ ] |
+| **Apple Developer Program 加入** | ¥12,800/年。[developer.apple.com/jp/programs/](https://developer.apple.com/jp/programs/) から登録（審査 24〜48時間）。TestFlight 配布には有料加入が必須（無料枠では不可） | [要記入] | [ ] |
+| **App Store Connect でアプリ登録** | [appstoreconnect.apple.com](https://appstoreconnect.apple.com) → 新規 App → Bundle ID 取得、アプリ名「もぐもぐウォーク」、言語「日本語」を設定 | [要記入] | [ ] |
+| **Bundle ID 決定** | 例: `com.yourname.mogumogu-walk`（App Store Connect で登録後、Xcode と一致させる） | [要記入] | [ ] |
+| **App Icon 制作** | 1024×1024px PNG（絵文字そのものは使用不可。下記 App Icon セクション参照） | [要記入] | [ ] |
+| **PrivacyInfo.xcprivacy 作成** | UserDefaults 使用の Privacy Manifest（下記セクション7参照） | 実装担当 | [ ] |
+
+### TestFlight ビルドアップロード手順
+
+```
+1. Xcode でビルドターゲットを「Any iOS Device (arm64)」に設定
+2. Product → Archive でアーカイブビルドを作成
+3. Organizer → Distribute App → App Store Connect → Upload
+4. App Store Connect の TestFlight タブで処理完了を待つ（15〜30分）
+5. テスターのメールアドレスを追加して招待メールを送信
+6. テスターが TestFlight アプリ（App Store 無料）をインストールして招待メールからインストール
+```
+
+---
+
 ## 1. アプリ概要
 
 | 項目 | 内容 |
@@ -27,7 +54,7 @@
 
 **基本動作**：
 - 「はじめる」ボタンタップで `CMPedometer.startUpdates(from: sessionStartTime)` を開始
-- `sessionStartTime`（`Date` 型）をメモリに保持する（確定歩数取得・フォアグラウンド復帰再同期に使用）
+- `sessionStartTime`（`Date` 型）を**メモリと UserDefaults 一時キー `mogumogu-walk-active-session` の両方に保存**する（OS によるアプリ終了後も復元可能にするため）
 - 計測中は `startUpdates` コールバックの `numberOfSteps` をリアルタイムで画面に表示（整数）
 - 「とめる」ボタンタップ時の歩数確定は以下の手順で行う：
 
@@ -35,6 +62,7 @@
 1. stopUpdates() で更新を停止
 2. queryPedometerData(from: sessionStartTime, to: Date()) で確定値を取得
 3. 取得した finalSteps をセッションに保存
+4. 一時キー mogumogu-walk-active-session を UserDefaults から削除
 ```
 
 > `startUpdates` のコールバックは非同期バッチ処理のため、最後のコールバック値は停止直前の歩数を含まない場合がある。`queryPedometerData` による確定値取得が必須。
@@ -146,7 +174,7 @@ playerNode.scheduleBuffer(clickBuffer, at: nextBeatTime, options: [], completion
 | ケース | 挙動 |
 |--------|------|
 | 計測中に電話着信 | メトロノーム停止。歩数カウントは継続（CMPedometer はコプロセッサ動作）。通話終了後にメトロノームは手動再開 |
-| 計測中にアプリ強制終了 | セッションは**保存しない**（中断データは破棄）。`startTimestamp` は UserDefaults に保存しないためリカバリも行わない |
+| 計測中にアプリ強制終了（または OS によるメモリ終了） | セッションは**保存しない**（中断データは破棄）。アプリ再起動時に一時キー `mogumogu-walk-active-session` が存在した場合は削除してリセットする |
 | 計測中に日をまたいだ | **停止時の日付**でセッションを保存する |
 | UserDefaults 保存失敗 | エラーメッセージ「記録の保存に失敗しました」を表示。アプリを継続使用可能 |
 
@@ -244,6 +272,25 @@ Counting →
   - ※ `.cornerRadius()` は iOS 17 で deprecated のため使用禁止
 - セッションリスト: `ScrollView + VStack`
 - 最小タップ領域: **44×44pt 以上**（Apple HIG 準拠）
+
+**アイコン: SF Symbols を採用**
+
+Apple 提供の SF Symbols（6,000以上のシステムアイコン）をボタン・ラベルに使用する。
+
+```swift
+Image(systemName: "figure.walk")   // はじめる
+Image(systemName: "stop.fill")     // とめる
+Image(systemName: "metronome")     // メトロノーム
+Image(systemName: "trash")         // 削除
+```
+
+| 比較 | 絵文字 | SF Symbols（採用） |
+|------|--------|-------------------|
+| ダークモード対応 | 固定デザイン | 自動対応 ✅ |
+| Dynamic Type 連動 | 非対応 | フォントサイズに連動 ✅ |
+| VoiceOver ラベル | 手動設定が必要 | システムが自動提供 ✅ |
+
+絵文字はラベルテキスト（「📋 今日の記録」等）には引き続き使用可。
 
 ### カラースキーム
 
@@ -356,13 +403,48 @@ Swift 6 ではコンパイラが並行性エラーを厳格にチェックする
 </array>
 ```
 
+### Privacy Manifest（PrivacyInfo.xcprivacy）
+
+iOS 17 以降、UserDefaults を使用するアプリは Privacy Manifest の記述が必要。
+TestFlight アップロード時に未記載だと警告が出る。
+
+プロジェクトルートに `PrivacyInfo.xcprivacy` を新規作成し、以下を記述する：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSPrivacyAccessedAPITypes</key>
+  <array>
+    <dict>
+      <key>NSPrivacyAccessedAPIType</key>
+      <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+      <key>NSPrivacyAccessedAPITypeReasons</key>
+      <array>
+        <string>CA92.1</string>
+      </array>
+    </dict>
+  </array>
+  <key>NSPrivacyCollectedDataTypes</key>
+  <array/>
+  <key>NSPrivacyTracking</key>
+  <false/>
+</dict>
+</plist>
+```
+
+> `CA92.1`: アプリ自身のデータ保存のための UserDefaults 使用（Apple 承認理由コード）
+
 ---
 
 ## 8. App Icon・Launch Screen
 
 **App Icon**:
-- サイズ: 1024×1024px（`AppIcon.appiconset`）
-- デザイン: 🐾 絵文字ベース、パステル紫背景
+- サイズ: 1024×1024px PNG（`AppIcon.appiconset`）
+- **絵文字をそのまま App Icon として使用することはできない**（PNG 画像として別途制作が必要）
+- デザイン案: 足跡モチーフ（🐾 イメージ）、パステル紫背景。SF Symbols の `figure.walk` を参考にイラスト化する
+- 制作方法: Canva・Sketch・Figma 等で PNG を書き出す（または SF Symbols アイコンを画像化）
 - 担当: [要記入]
 
 **Launch Screen**:
